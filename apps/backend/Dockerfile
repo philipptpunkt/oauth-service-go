@@ -11,10 +11,10 @@ RUN go mod download
 COPY /apps/backend/*.go ./
 
 # Build the Go binary
-RUN CGO_ENABLED=0 GOOS=linux go build -o /authentication-service-backend
+RUN CGO_ENABLED=0 GOOS=linux go build -o /oauth-service-backend
 
 # Expose the port your backend will listen on
 EXPOSE 8080
 
 # Run the Go application
-CMD ["/authentication-service-backend"]
+CMD ["/oauth-service-backend"]

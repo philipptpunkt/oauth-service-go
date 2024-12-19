@@ -8,8 +8,10 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var redisClient *redis.Client
-var ctx = context.Background()
+var (
+	redisClient *redis.Client
+	ctx         = context.Background()
+)
 
 func InitRedis() {
 	redisHost := os.Getenv("REDIS_HOST")

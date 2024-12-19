@@ -1,0 +1,9 @@
+{
+  "plugins": [
+    "prettier-plugin-organize-imports",
+    "prettier-plugin-tailwindcss"
+  ],
+  "tailwindStylesheet": "./packages/ui/src/styles.css",
+  "tailwindConfig": "./packages//config-tailwind/tailwind.config.ts",
+  "tailwindFunctions": ["cn"]
+}
