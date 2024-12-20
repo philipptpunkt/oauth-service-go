@@ -20,7 +20,7 @@ type RegisterClientRequest struct {
 }
 
 type RegisterClientResponse struct {
-	Message string `json:"message"`
+	Token string `json:"token"`
 }
 
 func RegisterClientHandler(w http.ResponseWriter, r *http.Request) {
@@ -106,9 +106,16 @@ func RegisterClientHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tempToken, err := utils.GenerateTemporaryJWT(req.Email, "email_verification", time.Hour)
+	if err != nil {
+		log.Println("Error generating temporary token:", err)
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(RegisterClientResponse{
-		Message: "Registration successful. Please check your email for the verification code.",
+		Token: tempToken,
 	})
 }
 

@@ -1,7 +1,7 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-// import { cookies } from "next/headers"
 
 export async function registerClient({
   email,
@@ -24,5 +24,16 @@ export async function registerClient({
     return { error: true, message: error };
   }
 
-  redirect("/register/success");
+  const { token } = await response.json();
+
+  const cookieStore = await cookies();
+
+  cookieStore.set("temp_token", token, {
+    path: "/",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+    maxAge: 3600, // 1 hour
+  });
+
+  redirect("/register/verify");
 }
