@@ -30,8 +30,9 @@ export async function registerClient({
 
   cookieStore.set("temp_token", token, {
     path: "/",
+    // sameSite: "none",
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+    secure: process.env.NODE_ENV !== "development",
     maxAge: 3600, // 1 hour
   });
 

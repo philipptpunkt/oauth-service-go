@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import Link from "next/link"
+import Link from "next/link";
 
 export default function ErrorPage() {
   return (
@@ -12,5 +12,5 @@ export default function ErrorPage() {
         <Link href="/">Back to Home</Link>
       </div>
     </div>
-  )
+  );
 }

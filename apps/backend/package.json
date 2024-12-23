@@ -5,6 +5,7 @@
   "scripts": {
     "build": "go build main.go",
     "dev": "go run main.go",
+    "test": "go test -v ./...",
     "generate:grpc": "protoc --proto_path=proto --go_out=. --go-grpc_out=. proto/v1.proto"
   }
 }
