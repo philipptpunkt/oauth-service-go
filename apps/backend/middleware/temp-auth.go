@@ -10,8 +10,8 @@ import (
 type TemporaryAuthKey string
 
 const (
-	EmailKey   TemporaryAuthKey = "email"
-	PurposeKey TemporaryAuthKey = "purpose"
+	ClientIDKey TemporaryAuthKey = "clientID"
+	PurposeKey  TemporaryAuthKey = "purpose"
 )
 
 func TemporaryAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
@@ -23,13 +23,13 @@ func TemporaryAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		}
 		token := authHeader[7:] // Strip "Bearer " prefix
 
-		email, purpose, err := utils.ValidateTemporaryJWT(token)
+		clientID, purpose, err := utils.ValidateTemporaryJWT(token)
 		if err != nil {
 			http.Error(w, "Unauthorized: "+err.Error(), http.StatusUnauthorized)
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), EmailKey, email)
+		ctx := context.WithValue(r.Context(), ClientIDKey, clientID)
 		ctx = context.WithValue(ctx, PurposeKey, purpose)
 		next(w, r.WithContext(ctx))
 	}

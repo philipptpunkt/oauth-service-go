@@ -26,5 +26,23 @@ export async function verifyEmailCode(data: { code: string }) {
     // return { error: true, message: error };
   }
 
+  const { token, refresh_token } = await response.json();
+
+  cookieStore.set("refresh_token", refresh_token, {
+    path: "/",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+  });
+
+  cookieStore.set("token", token, {
+    path: "/",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 15 * 60, // 15 minutes
+  });
+
   redirect("/dashboard");
 }

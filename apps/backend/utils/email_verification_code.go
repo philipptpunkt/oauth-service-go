@@ -8,8 +8,8 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func StoreVerificationCode(ctx context.Context, rdb *redis.Client, clientEmail string, code string, expiration time.Duration) error {
-	key := fmt.Sprintf("verification_code:%s", clientEmail)
+func StoreVerificationCode(ctx context.Context, rdb *redis.Client, clientID int, code string, expiration time.Duration) error {
+	key := fmt.Sprintf("verification_code:%d", clientID) // Corrected to %d for integers
 	err := rdb.Set(ctx, key, code, expiration).Err()
 	if err != nil {
 		return fmt.Errorf("failed to store verification code: %v", err)
@@ -17,8 +17,8 @@ func StoreVerificationCode(ctx context.Context, rdb *redis.Client, clientEmail s
 	return nil
 }
 
-func ValidateVerificationCode(ctx context.Context, rdb *redis.Client, clientEmail string, inputCode string) error {
-	key := fmt.Sprintf("verification_code:%s", clientEmail)
+func ValidateVerificationCode(ctx context.Context, rdb *redis.Client, clientID int, inputCode string) error {
+	key := fmt.Sprintf("verification_code:%d", clientID) // Corrected to %d for integers
 
 	storedCode, err := rdb.Get(ctx, key).Result()
 	if err == redis.Nil {
@@ -31,6 +31,7 @@ func ValidateVerificationCode(ctx context.Context, rdb *redis.Client, clientEmai
 		return fmt.Errorf("invalid verification code")
 	}
 
+	// Optionally delete the code after validation
 	// err = rdb.Del(ctx, key).Err()
 	// if err != nil {
 	// 	return fmt.Errorf("failed to delete verification code: %v", err)

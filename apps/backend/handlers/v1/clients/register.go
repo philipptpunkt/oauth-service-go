@@ -61,13 +61,13 @@ func RegisterClientHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = db.Exec(`
-	INSERT INTO client_credentials (email, password) 
-	VALUES ($1, $2)`,
+	var clientID int
+	err = db.QueryRow(
+		`INSERT INTO client_credentials (email, password) VALUES ($1, $2) RETURNING id`,
 		req.Email, string(hashedPassword),
-	)
+	).Scan(&clientID)
 	if err != nil {
-		log.Println("Error inserting client credentials:", err)
+		log.Printf("Error inserting client credentials: %v\n", err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
@@ -76,7 +76,7 @@ func RegisterClientHandler(w http.ResponseWriter, r *http.Request) {
 
 	redisClient := utils.GetRedisClient()
 	redisCtx := utils.GetRedisContext()
-	err = utils.StoreVerificationCode(redisCtx, redisClient, req.Email, verificationCode, time.Hour)
+	err = utils.StoreVerificationCode(redisCtx, redisClient, clientID, verificationCode, time.Hour)
 	if err != nil {
 		log.Println("Error storing verification code in Redis:", err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
@@ -106,7 +106,7 @@ func RegisterClientHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tempToken, err := utils.GenerateTemporaryJWT(req.Email, "email_verification", time.Hour)
+	tempToken, err := utils.GenerateTemporaryJWT(clientID, "email_verification", time.Hour)
 	if err != nil {
 		log.Println("Error generating temporary token:", err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
