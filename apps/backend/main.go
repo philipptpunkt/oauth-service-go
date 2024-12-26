@@ -26,9 +26,13 @@ func main() {
 
 	// Routes Client
 	http.HandleFunc("/api/v1/client/register", v1_clients.RegisterClientHandler)
+	http.HandleFunc("/api/v1/client/login", v1_clients.LoginClientHandler)
 
 	// Protected routes
 	http.Handle("/api/v1/client/verify-email-code", middleware.TemporaryAuthMiddleware(http.HandlerFunc(v1_clients.VerifyCodeHandler)))
+
+	http.Handle("/api/v1/client/logout", middleware.ClientAuthMiddleware(v1_clients.LogoutClientHandler))
+	http.Handle("/api/v1/client/delete", middleware.ClientAuthMiddleware(v1_clients.DeleteClientHandler))
 
 	// Routes Auth Service
 

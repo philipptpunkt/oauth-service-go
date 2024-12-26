@@ -4,58 +4,74 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 )
 
-func GetEncryptionKey() string {
-	key := os.Getenv("ENCRYPTION_KEY")
-	if key == "" {
-		panic("ENCRYPTION_KEY is not set")
+func GetEncryptionKey() ([]byte, error) {
+	encryptionKey := os.Getenv("ENCRYPTION_KEY")
+	if encryptionKey == "" {
+		return nil, fmt.Errorf("ENCRYPTION_KEY is not set")
 	}
-	return key
+
+	hash := sha256.Sum256([]byte(encryptionKey))
+	return hash[:], nil
 }
 
-func EncryptToken(plainText string, key string) (string, error) {
-	block, err := aes.NewCipher([]byte(key))
+func EncryptToken(token string, key []byte) (string, error) {
+	block, err := aes.NewCipher(key)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to create cipher block: %v", err)
 	}
 
-	cipherText := make([]byte, aes.BlockSize+len(plainText))
-	iv := cipherText[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return "", err
+	nonce := make([]byte, 12)
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return "", fmt.Errorf("failed to generate nonce: %v", err)
 	}
 
-	stream := cipher.NewCFBEncrypter(block, iv)
-	stream.XORKeyStream(cipherText[aes.BlockSize:], []byte(plainText))
+	aesGCM, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", fmt.Errorf("failed to create GCM: %v", err)
+	}
 
-	return base64.URLEncoding.EncodeToString(cipherText), nil
+	ciphertext := aesGCM.Seal(nil, nonce, []byte(token), nil)
+
+	// Combine nonce and ciphertext
+	finalCiphertext := append(nonce, ciphertext...)
+	return base64.URLEncoding.EncodeToString(finalCiphertext), nil
 }
 
-func DecryptToken(encryptedText string, key string) (string, error) {
-	cipherText, err := base64.URLEncoding.DecodeString(encryptedText)
+func DecryptToken(encryptedToken string, key []byte) (string, error) {
+	ciphertext, err := base64.URLEncoding.DecodeString(encryptedToken)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to decode token: %v", err)
 	}
 
-	block, err := aes.NewCipher([]byte(key))
+	if len(ciphertext) < 12 {
+		return "", errors.New("invalid ciphertext: too short")
+	}
+
+	nonce := ciphertext[:12]
+	ciphertext = ciphertext[12:]
+
+	block, err := aes.NewCipher(key)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to create cipher block: %v", err)
 	}
 
-	if len(cipherText) < aes.BlockSize {
-		return "", fmt.Errorf("cipherText too short")
+	aesGCM, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", fmt.Errorf("failed to create GCM: %v", err)
 	}
 
-	iv := cipherText[:aes.BlockSize]
-	cipherText = cipherText[aes.BlockSize:]
+	plaintext, err := aesGCM.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to decrypt token: %v", err)
+	}
 
-	stream := cipher.NewCFBDecrypter(block, iv)
-	stream.XORKeyStream(cipherText, cipherText)
-
-	return string(cipherText), nil
+	return string(plaintext), nil
 }

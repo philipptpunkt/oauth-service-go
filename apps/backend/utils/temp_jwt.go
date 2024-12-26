@@ -47,7 +47,7 @@ func ValidateTemporaryJWT(tokenString string) (int, string, error) {
 		return 0, "", fmt.Errorf("invalid token claims")
 	}
 
-	clientIDFloat, ok := claims["userID"].(float64)
+	clientIDFloat, ok := claims["clientID"].(float64)
 	if !ok {
 		return 0, "", fmt.Errorf("missing or invalid userID in token")
 	}

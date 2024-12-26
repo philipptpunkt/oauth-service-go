@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { clearClientCookies } from "./clearClientCookies";
 
 export async function verifyEmailCode(data: { code: string }) {
   const cookieStore = await cookies();
@@ -26,7 +27,9 @@ export async function verifyEmailCode(data: { code: string }) {
     // return { error: true, message: error };
   }
 
-  const { token, refresh_token } = await response.json();
+  const { token, refresh_token, profile_completed } = await response.json();
+
+  await clearClientCookies(["temp_token"]);
 
   cookieStore.set("refresh_token", refresh_token, {
     path: "/",
@@ -44,5 +47,9 @@ export async function verifyEmailCode(data: { code: string }) {
     maxAge: 15 * 60, // 15 minutes
   });
 
-  redirect("/dashboard");
+  if (profile_completed) {
+    redirect("/dashboard");
+  }
+
+  redirect("/register/complete-profile");
 }

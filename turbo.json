@@ -5,7 +5,7 @@
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
-      "env": ["NEXT_PUBLIC_*", "NODE_ENV"]
+      "env": ["NEXT_PUBLIC_*", "NODE_ENV", "JWT_SECRET"]
     },
     "lint": {},
     "type-check": {},

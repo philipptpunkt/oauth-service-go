@@ -28,7 +28,7 @@ export function NavigationBar() {
   return (
     <div className="sticky top-0 flex h-16 items-center justify-between bg-blue-200 px-4">
       <Link href="/" className="bg-blue-700 px-8 py-4 text-white">
-        Logo
+        Blue Auth
       </Link>
       <div>Main Naviagtion</div>
       <div>

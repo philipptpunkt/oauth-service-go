@@ -13,6 +13,7 @@
     "@hookform/resolvers": "^3.9.1",
     "@oauth-service-go/ui": "workspace:*",
     "@oauth-service-go/utils": "workspace:*",
+    "jose": "^5.9.6",
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

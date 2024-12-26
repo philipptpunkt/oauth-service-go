@@ -23,8 +23,6 @@ func InitDatabase() {
 	}
 
 	log.Println("Database connection established")
-
-	// ensureTablesExist()
 }
 
 func GetDB() *sql.DB {

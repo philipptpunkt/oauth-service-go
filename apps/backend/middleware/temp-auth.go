@@ -9,11 +9,6 @@ import (
 
 type TemporaryAuthKey string
 
-const (
-	ClientIDKey TemporaryAuthKey = "clientID"
-	PurposeKey  TemporaryAuthKey = "purpose"
-)
-
 func TemporaryAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")

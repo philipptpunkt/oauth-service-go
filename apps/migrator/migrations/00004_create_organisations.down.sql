@@ -1,0 +1,5 @@
+ROLLBACK;
+
+DROP TABLE IF EXISTS organisations;
+
+COMMIT;

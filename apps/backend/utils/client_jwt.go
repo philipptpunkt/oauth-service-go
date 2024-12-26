@@ -8,17 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type Role string
-
-const (
-	RoleAdmin      Role = "admin"
-	RoleMaintainer Role = "maintainer"
-	RoleViewer     Role = "viewer"
-	RoleSupport    Role = "support"
-	RoleOwner      Role = "owner"
-)
-
-func GenerateClientJWT(clientID int, role Role, duration time.Duration) (string, error) {
+func GenerateClientJWT(clientID int, duration time.Duration) (string, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		return "", fmt.Errorf("JWT_SECRET is not set")
@@ -26,7 +16,6 @@ func GenerateClientJWT(clientID int, role Role, duration time.Duration) (string,
 
 	claims := jwt.MapClaims{
 		"clientID": clientID,
-		"role":     role,
 		"exp":      time.Now().Add(duration).Unix(),
 		"iat":      time.Now().Unix(),
 	}
@@ -35,10 +24,10 @@ func GenerateClientJWT(clientID int, role Role, duration time.Duration) (string,
 	return token.SignedString([]byte(jwtSecret))
 }
 
-func ValidateClientJWT(tokenString string) (int, Role, error) {
+func ValidateClientJWT(tokenString string) (int, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		return 0, "", fmt.Errorf("JWT_SECRET is not set")
+		return 0, fmt.Errorf("JWT_SECRET is not set")
 	}
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
@@ -49,29 +38,19 @@ func ValidateClientJWT(tokenString string) (int, Role, error) {
 	})
 
 	if err != nil || !token.Valid {
-		return 0, "", fmt.Errorf("invalid token: %v", err)
+		return 0, fmt.Errorf("invalid token: %v", err)
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return 0, "", fmt.Errorf("invalid token claims")
+		return 0, fmt.Errorf("invalid token claims")
 	}
 
 	clientIDFloat, ok := claims["clientID"].(float64)
 	if !ok {
-		return 0, "", fmt.Errorf("missing or invalid clientID in token")
+		return 0, fmt.Errorf("missing or invalid clientID in token")
 	}
 	clientID := int(clientIDFloat)
 
-	role, ok := claims["role"].(string)
-	if !ok {
-		return 0, "", fmt.Errorf("missing or invalid role in token")
-	}
-
-	switch Role(role) {
-	case RoleAdmin, RoleMaintainer, RoleViewer, RoleSupport, RoleOwner:
-		return clientID, Role(role), nil
-	default:
-		return 0, "", fmt.Errorf("unauthorized role in token")
-	}
+	return clientID, nil
 }
