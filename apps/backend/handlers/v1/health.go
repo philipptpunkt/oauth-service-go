@@ -1,12 +1,13 @@
 package v1
 
 import (
-	"backend/utils"
 	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
 	"os"
+
+	"backend/utils"
 
 	_ "github.com/lib/pq"
 )
@@ -32,7 +33,7 @@ func HealthHandler(w http.ResponseWriter, r *http.Request) {
 	response := HealthResponse{
 		Backend:  "Ok",
 		Database: dbStatus,
-		Redis: redisStatus,
+		Redis:    redisStatus,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

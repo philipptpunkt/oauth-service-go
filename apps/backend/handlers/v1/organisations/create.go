@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
 
 	"backend/middleware"
+	"backend/models"
 	"backend/utils"
+
+	"gorm.io/gorm"
 )
 
 type CreateOrganisationRequest struct {
@@ -18,7 +20,7 @@ type CreateOrganisationRequest struct {
 
 type CreateOrganisationResponse struct {
 	Message        string `json:"message"`
-	OrganisationID int    `json:"organisation_id"`
+	OrganisationID uint   `json:"organisation_id"`
 }
 
 func CreateOrganisationHandler(w http.ResponseWriter, r *http.Request) {
@@ -27,7 +29,7 @@ func CreateOrganisationHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clientID := r.Context().Value(middleware.ClientIDKey).(int) // From middleware
+	clientID := r.Context().Value(middleware.ClientIDKey).(uint)
 	var req CreateOrganisationRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -42,25 +44,31 @@ func CreateOrganisationHandler(w http.ResponseWriter, r *http.Request) {
 
 	db := utils.GetDB()
 
-	// Create organisation
-	var organisationID int
-	err := db.QueryRow(`
-		INSERT INTO organisations (name, description, logo_url, owner_id)
-		VALUES ($1, $2, $3, $4) RETURNING id
-	`, req.Name, req.Description, req.LogoURL, clientID).Scan(&organisationID)
-	if err != nil {
-		log.Println("Error creating organisation:", err)
-		http.Error(w, "Server error", http.StatusInternalServerError)
-		return
-	}
+	err := db.Transaction(func(tx *gorm.DB) error {
+		organisation := models.Organisation{
+			Name:        req.Name,
+			Description: req.Description,
+			LogoURL:     req.LogoURL,
+			OwnerID:     clientID,
+		}
+		if err := tx.Create(&organisation).Error; err != nil {
+			return err
+		}
 
-	// Add owner as member
-	_, err = db.Exec(`
-		INSERT INTO organisation_members (organisation_id, client_id, role, created_at)
-		VALUES ($1, $2, $3, $4)
-	`, organisationID, clientID, "owner", time.Now())
+		member := models.OrganisationMember{
+			OrganisationID: organisation.ID,
+			ClientID:       clientID,
+			Role:           models.RoleOwner,
+			JoinedAt:       organisation.CreatedAt,
+		}
+		if err := tx.Create(&member).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 	if err != nil {
-		log.Println("Error adding organisation member:", err)
+		log.Println("Error creating organisation or member:", err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
@@ -68,6 +76,6 @@ func CreateOrganisationHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(CreateOrganisationResponse{
 		Message:        "Organisation created successfully.",
-		OrganisationID: organisationID,
+		OrganisationID: clientID,
 	})
 }

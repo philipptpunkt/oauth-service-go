@@ -1,7 +1,6 @@
 package v1_clients
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,9 +8,11 @@ import (
 	"net/http"
 	"time"
 
+	"backend/models"
 	"backend/utils"
 
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type RegisterClientRequest struct {
@@ -42,14 +43,14 @@ func RegisterClientHandler(w http.ResponseWriter, r *http.Request) {
 
 	db := utils.GetDB()
 
-	var exists bool
-	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM client_credentials WHERE email = $1)", req.Email).Scan(&exists)
-	if err != nil && err != sql.ErrNoRows {
-		log.Println("Error checking email existence:", err)
-		http.Error(w, "Server error", http.StatusInternalServerError)
-		return
-	}
-	if exists {
+	var existingClient models.ClientCredential
+	if err := db.Where("email = ?", req.Email).First(&existingClient).Error; err != nil {
+		if err != gorm.ErrRecordNotFound {
+			log.Println("Error checking email existence:", err)
+			http.Error(w, "Server error", http.StatusInternalServerError)
+			return
+		}
+	} else {
 		http.Error(w, "Email already registered", http.StatusBadRequest)
 		return
 	}
@@ -61,13 +62,13 @@ func RegisterClientHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var clientID int
-	err = db.QueryRow(
-		`INSERT INTO client_credentials (email, password) VALUES ($1, $2) RETURNING id`,
-		req.Email, string(hashedPassword),
-	).Scan(&clientID)
-	if err != nil {
-		log.Printf("Error inserting client credentials: %v\n", err)
+	client := models.ClientCredential{
+		Email:    req.Email,
+		Password: string(hashedPassword),
+	}
+
+	if err := db.Create(&client).Error; err != nil {
+		log.Println("Error inserting client credentials:", err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
@@ -76,7 +77,7 @@ func RegisterClientHandler(w http.ResponseWriter, r *http.Request) {
 
 	redisClient := utils.GetRedisClient()
 	redisCtx := utils.GetRedisContext()
-	err = utils.StoreVerificationCode(redisCtx, redisClient, clientID, verificationCode, time.Hour)
+	err = utils.StoreVerificationCode(redisCtx, redisClient, int(client.ID), verificationCode, time.Hour)
 	if err != nil {
 		log.Println("Error storing verification code in Redis:", err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
@@ -98,15 +99,14 @@ func RegisterClientHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	emailSender, _ := utils.CreateEmailSender()
-	err = emailSender.SendEmail(req.Email, "Your Verification Code",
-		emailBody, false)
+	err = emailSender.SendEmail(req.Email, "Your Verification Code", emailBody, false)
 	if err != nil {
 		log.Println("Error sending email:", err)
 		http.Error(w, "Failed to send verification email", http.StatusInternalServerError)
 		return
 	}
 
-	tempToken, err := utils.GenerateTemporaryJWT(clientID, "email_verification", time.Hour)
+	tempToken, err := utils.GenerateTemporaryJWT(int(client.ID), "email_verification", time.Hour)
 	if err != nil {
 		log.Println("Error generating temporary token:", err)
 		http.Error(w, "Server error", http.StatusInternalServerError)

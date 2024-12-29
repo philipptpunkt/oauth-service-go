@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"backend/middleware"
+	"backend/models"
 	"backend/utils"
 )
 
@@ -17,16 +18,30 @@ func DeleteClientHandler(w http.ResponseWriter, r *http.Request) {
 	clientID := r.Context().Value(middleware.ClientIDKey).(int)
 
 	db := utils.GetDB()
-	_, err := db.Exec("DELETE FROM client_credentials WHERE id = $1", clientID)
-	if err != nil {
-		log.Println("Error deleting client:", err)
+
+	tx := db.Begin()
+	if err := tx.Error; err != nil {
+		log.Println("Error starting transaction:", err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
 
-	_, err = db.Exec("DELETE FROM client_refresh_tokens WHERE client_id = $1", clientID)
-	if err != nil {
+	if err := tx.Where("client_id = ?", clientID).Delete(&models.ClientRefreshToken{}).Error; err != nil {
 		log.Println("Error deleting refresh tokens:", err)
+		tx.Rollback()
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tx.Where("id = ?", clientID).Delete(&models.ClientCredential{}).Error; err != nil {
+		log.Println("Error deleting client credentials:", err)
+		tx.Rollback()
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Println("Error committing transaction:", err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}

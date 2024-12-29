@@ -7,6 +7,7 @@ import (
 	v1 "backend/handlers/v1"
 	v1_clients "backend/handlers/v1/clients"
 	"backend/middleware"
+	"backend/models"
 	"backend/utils"
 
 	"github.com/joho/godotenv"
@@ -17,18 +18,26 @@ func main() {
 
 	// Initialize Postgres
 	utils.InitDatabase()
+	db := utils.GetDB()
+
+	err := db.AutoMigrate(&models.ClientCredential{}, &models.ClientRefreshToken{}, &models.OrganisationMember{}, &models.Organisation{})
+	if err != nil {
+		log.Fatalf("Failed to migrate database: %v", err)
+	}
+
+	log.Println("Database migration completed")
+
 	// Initialize Redis
 	utils.InitRedis()
 
 	// Routes General
 	http.HandleFunc("/api/v1/health", v1.HealthHandler)
-	http.Handle("/api/v1/cookie-test", middleware.CORSMiddleware(http.HandlerFunc(v1.TestCookieHandler)))
 
 	// Routes Client
 	http.HandleFunc("/api/v1/client/register", v1_clients.RegisterClientHandler)
 	http.HandleFunc("/api/v1/client/login", v1_clients.LoginClientHandler)
 
-	// Protected routes
+	// Protected Client Routes
 	http.Handle("/api/v1/client/verify-email-code", middleware.TemporaryAuthMiddleware(http.HandlerFunc(v1_clients.VerifyCodeHandler)))
 
 	http.Handle("/api/v1/client/logout", middleware.ClientAuthMiddleware(v1_clients.LogoutClientHandler))

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"backend/middleware"
+	"backend/models"
 	"backend/utils"
 )
 
@@ -15,9 +16,8 @@ type VerifyCodeRequest struct {
 }
 
 type VerifyCodeResponse struct {
-	Token            string `json:"token"`
-	RefreshToken     string `json:"refresh_token"`
-	ProfileCompleted bool   `json:"profile_completed"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 func VerifyCodeHandler(w http.ResponseWriter, r *http.Request) {
@@ -52,8 +52,7 @@ func VerifyCodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	db := utils.GetDB()
 
-	_, err = db.Exec("UPDATE client_credentials SET email_verified = TRUE WHERE id = $1", clientID)
-	if err != nil {
+	if err := db.Model(&models.ClientCredential{}).Where("id = ?", clientID).Update("email_verified", true).Error; err != nil {
 		log.Println("Error updating email verification status:", err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
@@ -88,11 +87,14 @@ func VerifyCodeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	expiresAt := time.Now().Add(7 * 24 * time.Hour) // 7 days
-	_, err = db.Exec(
-		"INSERT INTO client_refresh_tokens (client_id, token, expires_at) VALUES ($1, $2, $3)",
-		clientID, encryptedToken, expiresAt,
-	)
-	if err != nil {
+
+	refreshTokenEntry := models.ClientRefreshToken{
+		ClientID:  uint(clientID),
+		Token:     encryptedToken,
+		ExpiresAt: expiresAt,
+	}
+
+	if err := db.Create(&refreshTokenEntry).Error; err != nil {
 		log.Println("Error storing refresh token:", err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
@@ -100,8 +102,7 @@ func VerifyCodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(VerifyCodeResponse{
-		Token:            accessToken,
-		RefreshToken:     refreshToken,
-		ProfileCompleted: false,
+		Token:        accessToken,
+		RefreshToken: refreshToken,
 	})
 }

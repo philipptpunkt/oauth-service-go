@@ -1,15 +1,16 @@
 package v1_clients
 
 import (
-	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
 	"time"
 
+	"backend/models"
 	"backend/utils"
 
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type LoginClientRequest struct {
@@ -18,9 +19,8 @@ type LoginClientRequest struct {
 }
 
 type LoginClientResponse struct {
-	Token            string `json:"token"`
-	RefreshToken     string `json:"refresh_token"`
-	ProfileCompleted bool   `json:"profile_completed"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 func LoginClientHandler(w http.ResponseWriter, r *http.Request) {
@@ -37,11 +37,9 @@ func LoginClientHandler(w http.ResponseWriter, r *http.Request) {
 
 	db := utils.GetDB()
 
-	var hashedPassword string
-	var clientID int
-	var profile_completed bool
-	err := db.QueryRow("SELECT id, password, profile_completed FROM client_credentials WHERE email = $1", req.Email).Scan(&clientID, &hashedPassword, &profile_completed)
-	if err == sql.ErrNoRows {
+	var client models.ClientCredential
+	err := db.Where("email = ?", req.Email).First(&client).Error
+	if err == gorm.ErrRecordNotFound {
 		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
 		return
 	} else if err != nil {
@@ -50,12 +48,12 @@ func LoginClientHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(req.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(client.Password), []byte(req.Password)); err != nil {
 		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
 		return
 	}
 
-	accessToken, err := utils.GenerateClientJWT(clientID, 15*time.Minute)
+	accessToken, err := utils.GenerateClientJWT(int(client.ID), 15*time.Minute)
 	if err != nil {
 		log.Println("Error generating access token:", err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
@@ -84,8 +82,12 @@ func LoginClientHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	_, err = db.Exec("INSERT INTO client_refresh_tokens (client_id, token, expires_at) VALUES ($1, $2, $3)", clientID, encryptedToken, expiresAt)
-	if err != nil {
+	refreshTokenEntry := models.ClientRefreshToken{
+		ClientID:  client.ID,
+		Token:     encryptedToken,
+		ExpiresAt: expiresAt,
+	}
+	if err := db.Create(&refreshTokenEntry).Error; err != nil {
 		log.Println("Error storing refresh token:", err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
@@ -93,8 +95,7 @@ func LoginClientHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(LoginClientResponse{
-		Token:            accessToken,
-		RefreshToken:     refreshToken,
-		ProfileCompleted: profile_completed,
+		Token:        accessToken,
+		RefreshToken: refreshToken,
 	})
 }

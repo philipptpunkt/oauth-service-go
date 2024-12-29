@@ -1,30 +1,34 @@
 package utils
 
 import (
-	"database/sql"
 	"log"
 	"os"
 
-	_ "github.com/lib/pq"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
-var db *sql.DB
+var DB *gorm.DB
 
 func InitDatabase() {
 	connStr := os.Getenv("DATABASE_URL")
-	var err error
-	db, err = sql.Open("postgres", connStr)
+	if connStr == "" {
+		log.Fatalf("DATABASE_URL is not set")
+	}
+
+	db, err := gorm.Open(postgres.Open(connStr), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
 
-	if err = db.Ping(); err != nil {
-		log.Fatalf("Database ping failed: %v", err)
-	}
+	DB = db
 
-	log.Println("Database connection established")
+	log.Println("Database connection established using GORM")
 }
 
-func GetDB() *sql.DB {
-	return db
+func GetDB() *gorm.DB {
+	if DB == nil {
+		log.Fatal("Database is not initialized")
+	}
+	return DB
 }
