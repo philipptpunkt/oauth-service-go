@@ -1,9 +1,9 @@
-import resolveConfig from "tailwindcss/resolveConfig"
-import type { Config } from "tailwindcss"
-import tailwindConfig from "@oauth-service-go/tailwind-config"
+import tailwindConfig from "@oauth-service-go/tailwind-config";
+import type { Config } from "tailwindcss";
+import resolveConfig from "tailwindcss/resolveConfig";
 
 export function getTailwindTheme() {
-  const { theme } = resolveConfig(tailwindConfig as Config)
+  const { theme } = resolveConfig(tailwindConfig as Config);
 
-  return theme
+  return theme;
 }

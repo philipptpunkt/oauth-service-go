@@ -20,7 +20,7 @@ func main() {
 	utils.InitDatabase()
 	db := utils.GetDB()
 
-	err := db.AutoMigrate(&models.ClientCredential{}, &models.ClientRefreshToken{}, &models.OrganisationMember{}, &models.Organisation{})
+	err := db.AutoMigrate(&models.ClientCredentials{}, &models.ClientRefreshToken{}, &models.OrganisationMember{}, &models.Organisation{}, &models.ClientProfile{})
 	if err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
@@ -42,6 +42,7 @@ func main() {
 
 	http.Handle("/api/v1/client/logout", middleware.ClientAuthMiddleware(v1_clients.LogoutClientHandler))
 	http.Handle("/api/v1/client/delete", middleware.ClientAuthMiddleware(v1_clients.DeleteClientHandler))
+	http.Handle("/api/v1/client/profile", middleware.ClientAuthMiddleware(v1_clients.ClientProfileHandler))
 
 	// Routes Auth Service
 

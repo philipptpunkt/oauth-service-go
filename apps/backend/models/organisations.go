@@ -15,6 +15,6 @@ type Organisation struct {
 	CreatedAt   time.Time            `gorm:"autoCreateTime"`
 	UpdatedAt   time.Time            `gorm:"autoUpdateTime"`
 	DeletedAt   gorm.DeletedAt       `gorm:"index"`
-	Owner       ClientCredential     `gorm:"foreignKey:OwnerID;constraint:OnDelete:CASCADE"`
+	Owner       ClientCredentials    `gorm:"foreignKey:OwnerID;constraint:OnDelete:CASCADE"`
 	Members     []OrganisationMember `gorm:"foreignKey:OrganisationID"`
 }

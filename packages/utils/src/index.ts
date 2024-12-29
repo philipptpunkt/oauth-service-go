@@ -1,2 +1,2 @@
-export { cn } from "./cn"
-export { getTailwindTheme } from "./getTailwindTheme"
+export { cn } from "./cn";
+export { getTailwindTheme } from "./getTailwindTheme";

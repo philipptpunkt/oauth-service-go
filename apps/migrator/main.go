@@ -71,4 +71,3 @@ func main() {
 		log.Fatalf("Unknown action: %s", *action)
 	}
 }
-

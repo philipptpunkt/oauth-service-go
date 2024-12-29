@@ -52,8 +52,26 @@ func VerifyCodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	db := utils.GetDB()
 
-	if err := db.Model(&models.ClientCredential{}).Where("id = ?", clientID).Update("email_verified", true).Error; err != nil {
+	if err := db.Model(&models.ClientCredentials{}).Where("id = ?", clientID).Update("email_verified", true).Error; err != nil {
 		log.Println("Error updating email verification status:", err)
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+
+	var existingProfile models.ClientProfile
+	err = db.Model(&models.ClientProfile{}).Where("client_credentials_id = ?", clientID).First(&existingProfile).Error
+	if err != nil && err.Error() == "record not found" {
+		// Create a default profile for the client
+		defaultProfile := models.ClientProfile{
+			ClientCredentialsID: uint(clientID),
+		}
+		if err := db.Create(&defaultProfile).Error; err != nil {
+			log.Println("Error creating default client profile:", err)
+			http.Error(w, "Server error", http.StatusInternalServerError)
+			return
+		}
+	} else if err != nil {
+		log.Println("Error querying client profile:", err)
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}

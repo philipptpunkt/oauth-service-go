@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type ClientCredential struct {
+type ClientCredentials struct {
 	ID            uint           `gorm:"primaryKey"`
 	Email         string         `gorm:"size:255;unique;not null"`
 	Password      string         `gorm:"size:255;not null"`

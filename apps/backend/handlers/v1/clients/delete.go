@@ -33,7 +33,7 @@ func DeleteClientHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := tx.Where("id = ?", clientID).Delete(&models.ClientCredential{}).Error; err != nil {
+	if err := tx.Where("id = ?", clientID).Delete(&models.ClientCredentials{}).Error; err != nil {
 		log.Println("Error deleting client credentials:", err)
 		tx.Rollback()
 		http.Error(w, "Server error", http.StatusInternalServerError)

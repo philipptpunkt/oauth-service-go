@@ -27,7 +27,7 @@ export async function verifyEmailCode(data: { code: string }) {
     // return { error: true, message: error };
   }
 
-  const { token, refresh_token, profile_completed } = await response.json();
+  const { token, refresh_token } = await response.json();
 
   await clearClientCookies(["temp_token"]);
 
@@ -47,9 +47,5 @@ export async function verifyEmailCode(data: { code: string }) {
     maxAge: 15 * 60, // 15 minutes
   });
 
-  if (profile_completed) {
-    redirect("/dashboard");
-  }
-
-  redirect("/register/complete-profile");
+  redirect("/dashboard");
 }

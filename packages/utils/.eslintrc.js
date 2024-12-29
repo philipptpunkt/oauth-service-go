@@ -1,7 +1,7 @@
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
   root: true,
-  extends: ["oauth-service-go/eslint-config/next.js"],
+  extends: ["@oauth-service-go/eslint-config/next.js"],
   parser: "@typescript-eslint/parser",
   parserOptions: {
     project: true,
@@ -17,4 +17,4 @@ module.exports = {
       },
     },
   ],
-}
+};

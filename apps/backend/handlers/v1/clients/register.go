@@ -43,7 +43,7 @@ func RegisterClientHandler(w http.ResponseWriter, r *http.Request) {
 
 	db := utils.GetDB()
 
-	var existingClient models.ClientCredential
+	var existingClient models.ClientCredentials
 	if err := db.Where("email = ?", req.Email).First(&existingClient).Error; err != nil {
 		if err != gorm.ErrRecordNotFound {
 			log.Println("Error checking email existence:", err)
@@ -62,7 +62,7 @@ func RegisterClientHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := models.ClientCredential{
+	client := models.ClientCredentials{
 		Email:    req.Email,
 		Password: string(hashedPassword),
 	}

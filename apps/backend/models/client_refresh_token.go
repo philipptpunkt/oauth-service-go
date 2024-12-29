@@ -11,5 +11,5 @@ type ClientRefreshToken struct {
 	ExpiresAt time.Time `gorm:"not null"`
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 
-	ClientCredential ClientCredential `gorm:"foreignKey:ClientID;constraint:OnDelete:CASCADE"`
+	ClientCredentials ClientCredentials `gorm:"foreignKey:ClientID;constraint:OnDelete:CASCADE"`
 }

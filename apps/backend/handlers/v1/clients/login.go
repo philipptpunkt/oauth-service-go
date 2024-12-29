@@ -37,7 +37,7 @@ func LoginClientHandler(w http.ResponseWriter, r *http.Request) {
 
 	db := utils.GetDB()
 
-	var client models.ClientCredential
+	var client models.ClientCredentials
 	err := db.Where("email = ?", req.Email).First(&client).Error
 	if err == gorm.ErrRecordNotFound {
 		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
